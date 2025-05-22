@@ -170,3 +170,39 @@ head(sorted_moby_freqs_t)
 # In Moby Dick, you’ll likely see function words like “the,” “and,” “of” dominate the top of the list,
 # which is normal and consistent with Zipf’s Law.
 
+# 2.6 Practice
+
+# Practice Problem 1: Create an object for the top 10 most frequent words
+top_ten_t <- head(sorted_moby_freqs_t, 10) # takes the first 10 rows
+top_ten_t 
+
+# Practice Problem 2: 
+top_ten_t <- c(1:10)
+plot(top_ten_t)
+
+# Alternative Solution to Practice Problem 2:
+# Step 1: Frequencies and Ranks
+top_freqs_v <- as.numeric(top_ten_t)
+top_ranks_v <- 1:10
+top_words_v <- names(top_ten_t)
+
+# Step 2: Plot with lines and points
+plot(top_ranks_v, top_freqs_v,
+     type = "b",                          # both lines and points
+     pch = 19,                            # solid dots
+     col = "darkblue",
+     main = "Top 10 Most Frequent Words in Moby Dick",
+     xlab = "Word Rank",
+     ylab = "Word Frequency",
+     xaxt = "n")                          # suppress default x-axis ticks
+
+# Add custom x-axis with actual word labels
+axis(1, at = top_ranks_v, labels = top_words_v)
+
+# Optional: Also add text above each point (for cleaner spacing)
+# text(x, y, label, pos=3 = above the point)
+text(top_ranks_v, top_freqs_v,
+     labels = top_words_v,
+     pos = 3,                             # position text above point
+     cex = 0.8,                           # text size
+     col = "black")
