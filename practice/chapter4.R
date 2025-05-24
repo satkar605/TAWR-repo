@@ -247,3 +247,50 @@ par(mfrow = c(1, 1))
 # whale-related presence + provides more detail as it capture not just literal mentions
 # but plural forms "whales"; possessive forms "whale's" and even metaphorical "leviathian"
 
+# Problem 2: Practice with regex metacharacters
+# Goal: Find all five-letter words in Moby Dick that:
+# - Begin with "wh"
+# - End with "e"
+# - Have any two characters in between (wildcards)
+
+# The dot (.) in regex is a wildcard — it matches any character
+# The pattern ^wh..e$ means:
+#   ^     → anchor to start of word
+#   wh    → literal "wh"
+#   ..    → any two characters
+#   e     → literal "e"
+#   $     → anchor to end of word
+# This ensures the total length is exactly five characters
+
+# We use grep() to find all such words and return the values (not just positions)
+five_letter_wh_v <- grep("^wh..e$", moby_word_v, value = TRUE)
+
+# View a few matches
+head(five_letter_wh_v)
+
+# Create a frequency table of those words
+five_letter_wh_t <- table(five_letter_wh_v)  # table
+
+# Sort and display the most frequent ones
+sort(five_letter_wh_t, decreasing = TRUE)
+
+# Problem 3: Find all words ending in "ly"
+# Pattern breakdown:
+#   ly$ → matches any word that ends with "ly" (the $ anchors the end of the word)
+
+# Find positions of words ending in "ly"
+ly_positions <- grep("ly$", moby_word_v)
+
+# Extract the matching words
+ly_hits <- moby_word_v[ly_positions]
+
+# Count frequencies of each "ly" word
+ly_freq <- table(ly_hits)
+
+# Sort in descending order and show top 3
+sorted_lys <- sort(ly_freq, decreasing = TRUE)
+sorted_lys[1:3]
+
+
+# alternate solution with function embedding
+sort(table(moby_word_v[grep("ly$", moby_word_v)]),decreasing = T)[1:3]
