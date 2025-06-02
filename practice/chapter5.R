@@ -5,7 +5,7 @@
 # -------------------------------------
 # Best Practice: Clear the R environment before starting a new task.
 # Alternatively, the broom button in the Console or Environment tab works fine too.
-rm(list = ls())
+rm(list = ls()) # like clear or cls
 ls() # Confirm it's empty
 # Expected output: character(0)
 
