@@ -1,0 +1,363 @@
+---
+title: "Chapter 6: Correlation – Text Analysis with R"
+author: "Satkar Karki"
+format: html
+editor: visual
+toc: true
+---
+
+This chapter introduces data frames, random sampling, and correlation. Then, perform permutation tests to assess significance of derived correlations.
+
+## Start-Up Code 
+
+```{r}
+
+# Clear the workspace
+rm(list = ls())
+
+# Load the text file
+text_v <- scan("data/text/melville.txt", what = "character", sep = "\n")
+
+# Get starting point from CHAPTER 1 onward
+start_v <- which(text_v == "CHAPTER 1. Loomings.")
+novel_lines_v <- text_v[start_v:length(text_v)]
+
+# Get chapter heading positions
+chap_positions_v <- grep("CHAPTER \\d", novel_lines_v)
+
+# Add the last position of the novel
+last_position_v <- length(novel_lines_v)
+chap_positions_v <- c(chap_positions_v, last_position_v)
+
+# Create two empty lists to store word frequencies
+chapter_raws_l <- list()
+chapter_freqs_l <- list()
+
+# Loop through each chapter and collect word frequencies
+for(i in 1:length(chap_positions_v)) {
+  if(i != length(chap_positions_v)) {
+    chapter_title <- novel_lines_v[chap_positions_v[i]]
+    start <- chap_positions_v[i] + 1
+    end <- chap_positions_v[i + 1] - 1
+    chapter_lines_v <- novel_lines_v[start:end]
+    chapter_words_v <- tolower(paste(chapter_lines_v, collapse = " "))
+    chapter_words_l <- strsplit(chapter_words_v, "\\W")
+    chapter_word_v <- unlist(chapter_words_l)
+    chapter_word_v <- chapter_word_v[which(chapter_word_v != "")]
+    chapter_freqs_t <- table(chapter_word_v)
+    chapter_raws_l[[chapter_title]] <- chapter_freqs_t
+    chapter_freqs_l[[chapter_title]] <- 100 * (chapter_freqs_t / sum(chapter_freqs_t))
+  }
+}
+
+# Extract 'whale' and 'ahab' frequencies using lapply
+whale_l <- lapply(chapter_freqs_l, "[", "whale")
+ahab_l <- lapply(chapter_freqs_l, "[", "ahab")
+
+# Convert to matrices using do.call and rbind
+whales_m <- do.call(rbind, whale_l)
+ahabs_m  <- do.call(rbind, ahab_l)
+
+# Convert matrices to numeric vectors
+whales_v <- as.vector(whales_m[, 1])
+ahabs_v  <- as.vector(ahabs_m[, 1])
+
+# Bind vectors column-wise into a new matrix
+whales_ahabs_m <- cbind(whales_v, ahabs_v)
+
+# Set column names
+colnames(whales_ahabs_m) <- c("whale", "ahab")
+
+
+```
+
+## Correlation Analysis
+
+A correlation analysis attempts to determine the extent to which there is dependence, or linear dependence between two sets of points.
+
+R offers a simple function, cor, for calculating the strength of possible correlation.
+
+```{r}
+```
+
+```{r}
+whale_l <- lapply(chapter_freqs_l, "[", "whale") # extract "whale" frequency from each chapter
+whales_ahabs_m[1:16, ] # show first 16 rows of whale/arab frequency matrix
+```
+
+We need to replace every NA values with 0 before calculating the correlation co-efficient.
+
+```{r}
+whales_ahabs_m[which(is.na(whales_ahabs_m))] <- 0 # this code replaces N/A with 0
+cor(whales_ahabs_m) # cor is the function used to run the correlation test
+```
+
+A two-column matrix is often an overkill while presenting information. Since, we are concerned with the correlation between 'whale' and 'ahab'; it could be achieved by:
+
+```{r}
+mycor <- cor(whales_ahabs_m[,"whale"], whales_ahabs_m[,"ahab"])
+mycor
+```
+
+Here, 'whale' and 'ahab' have a correlation of around -0.248 suggesting a slight inverse relationship.
+
+One way to contextualizing this coefficient is to calculate how likely it is to happen just by chance.
+
+## A Word About Data Frames
+
+Just as it happens, data frames are R's bread and butter data type.
+
+They can be thought of as a table in database.
+
+While they are similar to matrix, the difference is that matrix can't hold characters while data frames are able to.
+
+We denote data frame by 'df'.
+
+The goal is to convert `whales_ahabs_m`to a data frame and prepare it for **randomization test** in the next section.
+
+```{r}
+x <- matrix(1, 3, 3)
+x
+```
+
+```{r}
+class(x[1,2]) # retrieves the class of cell in first row of second column
+```
+
+Now we change one of the cells into a character.
+
+```{r}
+x[1,2] <- "Sam I am"
+class(x[1,2])
+```
+
+```{r}
+class(x[1,3])
+
+```
+
+All the cells including all the 1's got converted into "character" type.
+
+However, a data frame can hold both 'numeric' and 'character' values.
+
+```{r}
+x <- matrix(1,3,3)
+x_df <- as.data.frame(x)
+x_df
+```
+
+Let's fiddle around!
+
+```{r}
+x_df[1,2] <- "I am Sam"
+class(x_df[1,2])
+```
+
+```{r}
+class(x_df[1,1])
+```
+
+```{r}
+x_df[,2] # lists the values in second column
+```
+
+```{r}
+x_df[,"V2"] # calling out the column name instead
+
+```
+
+```{r}
+x_df$V2 # another shorthand to access column-specific data is also the use of $
+```
+
+## Testing Correlation with Randomization
+
+First, let's convert the matrix object `whales_ahabs_m` into a data frame called `corr_data_f`:
+
+```{r}
+cor_data_df <- as.data.frame(whales_ahabs_m)
+cor(cor_data_df)
+```
+
+**Why Use Randomization?**
+
+Shuffling one of the columns (either 'ahab' or 'whale') and repeating this many times helps create a distribution of **"chance correlations"**. Then, we compare the original correlation to this distribution.
+
+In R, we achieve this by using the `sample()` function which shuffles.
+
+```{r}
+sample(c(1,2,3,4,5,6))
+```
+
+```{r}
+sample(cor_data_df$whale) # try this a few times 
+```
+
+```{r}
+cor(sample(cor_data_df$whale), cor_data_df$ahab)
+```
+
+Initializing a loop to generate a vector holding 10,000 different randomized correlation values.
+
+```{r}
+mycors_v <- NULL
+for(i in 1:10000){
+  mycors_v <- c(
+    mycors_v,
+    cor(sample(cor_data_df$whale),
+    cor_data_df$ahab)
+  )
+}
+```
+
+```{r}
+min(mycors_v) # minimum value
+```
+
+```{r}
+max(mycors_v) # max value 
+```
+
+```{r}
+range(mycors_v) # range of values
+```
+
+```{r}
+mean(mycors_v)
+```
+
+```{r}
+sd(mycors_v)
+```
+
+```{r}
+summary(mycors_v) # summary stats
+```
+
+Now we plot a histogram to show the spread.
+
+```{r}
+# Create histogram of simulated correlation values
+h <- hist(mycors_v, breaks = 100, col = "lightgray",
+          xlab = "Correlation Coefficient",
+          main = "Randomization Test:\nCorrelation Between 'whale' and 'ahab'",
+          plot = TRUE)
+
+# Create a sequence for the normal curve
+xfit <- seq(min(mycors_v), max(mycors_v), length = 1000)
+
+# Normal distribution using simulated mean and standard deviation
+yfit <- dnorm(xfit, mean = mean(mycors_v), sd = sd(mycors_v))
+
+# Scale the y-values to align with histogram height
+yfit <- yfit * diff(h$mids[1:2]) * length(mycors_v)
+
+# Draw the normal curve
+lines(xfit, yfit, col = "black", lwd = 2)
+
+# Add a red line to show the actual observed correlation
+abline(v = mycor, col = "red", lwd = 2, lty = 2)
+
+# Optional: add a legend
+legend("topright",
+       legend = c("Observed correlation", "Fitted normal curve"),
+       col = c("red", "black"),
+       lty = c(2, 1),
+       lwd = 2,
+       bty = "n")
+
+```
+
+The plot reveals just how much the data cluster around the mean. Under the assumption of no relationship, the observed correlation is very rare.
+
+## Practice Problem #1
+
+We expanded our analysis to include two-person pronouns "i" and "my" as additional variables. After appending these to our frequency matrix and replacing missing values with zero, we used the `cor()` function to generate a correlation matrix showing pairwise relationships across all four terms.
+
+This allows us to investigate whether the narrator's presence aligns with Ahab, Whale, or both.
+
+```{r}
+# Extract 'i' and 'my' relative frequencies from each chapter
+i_l <- lapply(chapter_freqs_l, "[", "i")
+my_l <- lapply(chapter_freqs_l, "[", "my")
+```
+
+```{r}
+# Convert to numeric vectors (as done for whale/ahab)
+i_m <- do.call(rbind, i_l)
+my_m <- do.call(rbind, my_l)
+
+i_v <- as.vector(i_m[,1])
+my_v <- as.vector(my_m[,1])
+```
+
+```{r}
+# Combine all four into one matrix 
+full_m <- cbind(whales_v, ahabs_v, i_v, my_v)
+
+# Name columns properly
+colnames(full_m) <- c("whale", "ahab", "i", "my")
+
+# Replace all NA values with 0
+full_m[which(is.na(full_m))] <- 0
+
+# Calculate pairwise correlations
+cor(full_m)
+```
+
+-   "i" and "my" are closely linked — they track the narrator's presence.
+
+-   These words have inverse relationships with *"whale"*, showing that personal chapters focus less on the whale.
+
+-   There's almost no alignment between Ahab and the narrator, suggesting that when Ahab is central, the narrator becomes more distant.
+
+## Practice Problem #2
+
+We ran a **randomization test** to evaluate whether the observed correlation between `"i"` and `"my"` (≈ +0.77) is significant. By shuffling the `"i"` column 10,000 times and recalculating the correlation each time, we created a distribution of "chance" correlations. The observed value was then compared to this distribution.
+
+A p-value near **0** suggests the correlation is **not due to chance**, confirming that the narrator’s personal presence is consistent and meaningful across chapters.
+
+```{r}
+cor_data_df <- as.data.frame(full_m)  # full_m has whale, ahab, i, my
+```
+
+```{r}
+mycors_v <- NULL  # empty vector to hold correlation values
+
+for(i in 1:10000){
+  mycors_v <- c(
+    mycors_v,
+    cor(sample(cor_data_df$i), cor_data_df$my)  # shuffle "i", keep "my"
+  )
+}
+```
+
+```{r}
+# Plot histogram of randomized correlations
+h <- hist(mycors_v, breaks = 100, col = "lightgray",
+          xlab = "Simulated correlation values",
+          main = "Randomization Test: Correlation Between 'i' and 'my'")
+
+# Overlay a normal curve
+xfit <- seq(min(mycors_v), max(mycors_v), length = 1000)
+yfit <- dnorm(xfit, mean = mean(mycors_v), sd = sd(mycors_v))
+yfit <- yfit * diff(h$mids[1:2]) * length(mycors_v)
+lines(xfit, yfit, col = "black", lwd = 2)
+
+# Add a red line for the observed correlation
+abline(v = cor_data_df |> with(cor(i, my)), col = "red", lty = 2, lwd = 2)
+
+
+```
+
+```{r}
+# Observed correlation between "i" and "my"
+observed <- cor(cor_data_df$i, cor_data_df$my)
+
+# Proportion of random values ≥ observed
+p_val <- sum(mycors_v >= observed) / length(mycors_v)
+p_val
+
+```
+
+Our randomization test for the correlation between `"i"` and `"my"` returned a p-value of **0**, indicating that **none** of the 10,000 shuffled simulations produced a correlation as large as the one observed (\~0.77). This confirms a **statistically significant association** between these two first-person pronouns — a consistent marker of the narrator’s presence.
